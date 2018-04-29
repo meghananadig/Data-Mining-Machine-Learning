@@ -1,0 +1,345 @@
+---
+title: "Meghana_Nadig_Assignment 4"
+output:
+  pdf_document: default
+  html_notebook: default
+  html_document: default
+---
+
+ Q.1 SMS message filtering example
+ 
+ Step 1 - Collecting Data
+
+```{r}
+
+# Importing CSV data
+
+sms_raw <- read.csv("C:/Users/Meghana Nadig/Downloads/Assignment 4/Assignment4.csv", stringsAsFactors = FALSE)
+
+str(sms_raw)
+
+```
+
+Step 2 - Exploring and preparing the data
+
+```{r}
+# Converting "type" which is a character variable into a factor
+
+sms_raw$type <- factor(sms_raw$type)
+
+str(sms_raw$type)
+
+table(sms_raw$type)
+```
+
+```{r}
+# Installing the text mining package
+#install.packages("NLP")
+#install.packages("tm")
+
+library(NLP)
+library(tm)
+```
+
+Data Preparation - Cleaning and Standardizing text data
+
+```{r}
+# Creating a corpus
+
+sms_corpus <- VCorpus(VectorSource(sms_raw$text))
+
+print(sms_corpus)
+```
+
+```{r}
+# Viewing summary of first-two messeges
+
+inspect(sms_corpus[1:2])
+```
+
+```{r}
+# Viewing the actual message text
+
+as.character(sms_corpus[[1]])
+```
+
+```{r}
+# Viewing multiple documents
+
+lapply(sms_corpus[1:2], as.character)
+```
+
+```{r}
+# Cleaning the corpus and standardizing the messages to use only lowercase characters
+
+sms_corpus_clean <- tm_map(sms_corpus, content_transformer(tolower))
+
+as.character(sms_corpus[[1]])
+
+as.character(sms_corpus_clean[[1]])
+```
+
+```{r}
+
+#install.packages("SnowballC")
+
+library(SnowballC)
+
+# Removing numbers from SMS messages
+
+sms_corpus_clean <- tm_map(sms_corpus_clean, removeNumbers)
+
+# Removing StopWords
+
+sms_corpus_clean <- tm_map(sms_corpus_clean, removeWords, stopwords())
+
+# Removing Punctuations
+
+sms_corpus_clean <- tm_map(sms_corpus_clean, removePunctuation)
+
+# Stemming
+
+```
+
+```{r}
+# Applying WordStem
+
+sms_corpus_clean <- tm_map(sms_corpus_clean, stemDocument)
+
+# Removing blankspaces
+
+sms_corpus_clean <- tm_map(sms_corpus_clean, stripWhitespace)
+
+# Comapring before and after cleaning SMS messages
+
+as.character(sms_corpus[1:3])
+
+as.character(sms_corpus_clean[1:3])
+```
+
+Data Preparation - Splitting text documents into words
+
+```{r}
+# Tokenizing by creating DTM matrix
+
+sms_dtm <- DocumentTermMatrix(sms_corpus_clean)
+```
+
+Data Preparation- Creating training and test datasets
+
+```{r}
+# Training dataset
+
+train <- sms_dtm[1:4180,]
+
+# Testing dataset
+
+test <- sms_dtm[4181:5574,]
+
+# Creating labels of training and testing datasets
+
+sms_train_labels <- sms_raw[1:4180,]$type
+
+sms_test_labels <- sms_raw[4181:5574,]$type
+
+# Checking the subsets
+
+prop.table(table(sms_train_labels))
+
+prop.table(table(sms_test_labels))
+```
+
+Visualizing text data - Word Clouds
+
+```{r}
+#install.packages("wordcloud")
+#install.packages("RColorBrewer")
+library(RColorBrewer)
+library(wordcloud)
+
+wordcloud(sms_corpus_clean, min.freq = 126, random.order = FALSE)
+```
+
+```{r}
+# creating spam & ham subset
+
+spam<- subset(sms_raw, type == "spam")
+
+ham <- subset(sms_raw, type == "ham")
+
+# WordCloud the spam and ham subset
+
+wordcloud(spam$text, max.words = 40, scale= c(3, 0.5))
+
+wordcloud(ham$text, max.words = 40, scale= c(3, 0.5))
+```
+
+Data Preparation - creating indicator features for frequent words
+
+```{r}
+sms_freq_words <- findFreqTerms(train, 5)
+
+str(sms_freq_words)
+```
+
+```{r}
+# Filtering DTM
+
+sms_dtm_freq_train <- train[,sms_freq_words]
+
+sms_dtm_freq_test <- test[,sms_freq_words]
+```
+
+```{r}
+# Converting counts to yes or no
+
+convert_counts <- function(x) {
+  x <- ifelse(x > 0, "Yes", "No")
+}
+```
+
+```{r}
+# Applying convert_counts() to each of the columns
+
+sms_train <- apply(sms_dtm_freq_train, MARGIN = 2, convert_counts)
+
+sms_test <- apply(sms_dtm_freq_test, MARGIN = 2, convert_counts)
+
+```
+ 
+ Step 3 - Training a model on the data
+ 
+ 
+```{r}
+#install.packages("e1071")
+
+library(e1071)
+```
+ 
+ 
+```{r}
+# Using naivebayes function from the package
+
+sms_classifier <- naiveBayes(sms_train, sms_train_labels)
+
+```
+
+Step 4 - Evaluating model performance
+
+```{r}
+# Making prediction
+
+sms_test_pred <- predict(sms_classifier, sms_test)
+
+library(gmodels)
+
+# Comparing predictions
+
+CrossTable(sms_test_pred, sms_test_labels, prop.chisq = FALSE, prop.t = FALSE, dnn = c('predicted', 'actual'))
+```
+
+Step 5 - Improving model performance
+
+```{r}
+
+# Building naivebayes model with laplace = 1
+
+sms_classifier2 <- naiveBayes(sms_train, sms_train_labels, laplace = 1)
+
+# Making predictions
+
+sms_test_pred2 <- predict(sms_classifier2, sms_test)
+
+# Comparing predictions
+
+CrossTable(sms_test_pred2, sms_test_labels, prop.chisq = FALSE, prop.t = FALSE, prop.r = FALSE, dnn = c('predicted', 'actual'))
+```
+
+
+
+Q.2 Naive bayes for iris data
+
+```{r}
+# Installing the klaR package
+
+#install.packages("klaR")
+library(klaR)
+
+data(iris)
+```
+
+```{r}
+# Checking first few rows of data
+head(iris)
+```
+
+```{r}
+# identify indexes to be in testing dataset
+# every index of 5th, 10th, 15th..will be the testing dataset
+# the rest are training dataset
+
+testidx <- which(1:length(iris[,1]) %% 5 == 0)
+
+testidx
+```
+
+```{r}
+# seperate into training and testing datasets
+
+iristrain <- iris[-testidx,]
+
+iristest <- iris[testidx,]
+
+iristrain
+iristest
+```
+
+```{r}
+# apply Naive Bayes
+
+nbmodel <- NaiveBayes(Species~., data = iristrain)
+nbmodel
+```
+
+```{r}
+# check the accuracy
+
+prediction <- predict(nbmodel, iristest[,-5])
+prediction
+
+table(prediction$class, iristest[,5])
+```
+
+1. How would you make a prediction for a new case with the above package?
+
+prediction <- predict(nbmodel, iristest)
+
+2.How does this package deal with numeric features? 
+
+This package works well with both numeric as well as character variables.
+
+3.How does it specify a Laplace estimator?
+
+NaiveBayes(x, grouping, prior, usekernel = FALSE, fL = 0, ...)
+
+fL- Factor for Laplace correction, default factor is 0, i.e. no correction.
+
+
+Q.3 Laplace Estimator
+
+Adds a small number to each of the counts which ensures that each feature has a nonzero probability of occuring with each class. Typically, the Laplace estimator is set to 1, which ensures that each class-feature combination is found in the data at least once.
+
+Example:
+
+Given: a1, a2, a1, a2,a3, a1, a3, a2
+
+Without laplace estimator:
+
+Probability(a1)= 3/8 Probability(a2)= 3/8 Probability(a3)= 2/8
+
+With laplace estimator: (K=1)
+Probability(a1)= (3+1)/8+3(1)=4/11
+Probability(a2)= (3+1)/8+3(1)=4/11
+Probability(a3)= (2+1)/8+3(1)=3/11
+
+The Laplace tends to draw the estimate of probability distribution closer to uniform distribution and larger the value of k, closer will it be to uniform distribution. This makes the estimated probabiliity nonzero.
