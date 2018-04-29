@@ -1,0 +1,478 @@
+---
+title: "Practicum_1"
+output:
+  html_document: default
+  pdf_document: default
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+#install.packages("caret")
+
+library(class)
+#install.packages("zscore")
+#install.packages("FNN")
+#install.packages("e1071")
+library("e1071")
+#library(contrib.url)
+
+```
+
+
+Loading the data # Question 1
+```{r}
+glass_data <- read.csv("C:/Users/Meghana Nadig/Desktop/Practicum/glassdata.csv", stringsAsFactors = FALSE,header = FALSE)
+
+```
+
+Changing column names # Question 2
+
+```{r}
+
+colnames(glass_data) <- c("ID", "RefractiveIndex", "Sodium", "Magnesium", "Aluminum", "Silicon", "Potassium", "Calcium", "Barium",
+                          "Iron", "Type")
+nrow(glass_data)
+
+
+```
+
+Explore the data
+```{r}
+summary(glass_data)
+
+```
+
+
+# 3 - Plotting a histogram with a normal curve
+```{r}
+
+hist(glass_data$Sodium)
+x <- glass_data$Sodium
+
+h<-hist(x, breaks=10, col="yellow", xlab="sodium percent", 
+  	main="Histogram with Normal Curve") 
+xfit<-seq(min(x),max(x),length=40) 
+yfit<-dnorm(xfit,mean=mean(x),sd=sd(x)) 
+yfit <- yfit*diff(h$mids[1:2])*length(x) 
+lines(xfit, yfit, col="blue", lwd=2)
+
+```
+- The data is normally distributed as seen from the output.
+
+- KNN is an non parametric lazy learning algorithm.It means that it does not make any assumptions on the  underlying data distribution.
+
+
+
+
+
+# Question 6
+```{r}
+
+library(caret)
+
+
+#glass_data$Type <- as.factor(glass_data$Type)
+set.seed(200)
+
+
+training_data.o <- createDataPartition(na.omit(glass_data$Type),p = .50, list = FALSE)
+
+validation.o <- glass_data[training_data.o,]
+Train.o <- glass_data[-training_data.o,]
+
+
+```
+
+
+# Question 4,5,7
+```{r}
+
+#Removing column 1 (Id Number)
+glass_data <- glass_data[-1]
+
+#Normalizing column 1 and 2
+normalize4 <- function(x) {
+  return((x - min(x)) / (max(x) - min(x)))
+}
+glass_data_n <- as.data.frame(lapply(glass_data[1:2], normalize4))
+
+
+# Z-Score normalization for remaining columns
+normalize5 <- function(x) {
+  return((x - mean(x)) / sd(x))
+}
+
+glass_data_z <- as.data.frame(lapply(glass_data[3:9], normalize5))
+
+
+
+glass_data_normalized <- data.frame(glass_data_n,glass_data_z)
+glass_data_normalized
+
+
+
+# Creating the distance formula
+unknown1 <- glass_data_normalized[215,]
+unknown2 <- glass_data_normalized[216,]
+
+p <- glass_data_normalized[1,]
+q <- unknown1
+
+dist <- function(p,q)
+{
+ d <- 0
+ for (i in 1: length(p)) {
+ d <- d + (p [i]-q[i])^2
+ }
+ dist <- sqrt(d)
+ }
+ j <- dist(p,q)
+ 
+
+
+neighbors <- function(glass_data_normalized,unknown1)
+{
+m <- nrow(glass_data_normalized)
+ds <- numeric(m)
+f <- unknown1
+for (i in 1:m) {
+p <- glass_data_normalized[i,c(1:9)]
+ds[i] <- dist(p,f)
+}
+neighbors<-ds
+}
+l <- neighbors(glass_data_normalized,unknown1)
+
+o <- order(l)
+
+
+k <- 10
+
+k.closest <- function(neighbors,k)
+{
+  ordered.neighbors <- order(neighbors)
+  k.closest <- ordered.neighbors[1:k]
+} 
+
+f <- k.closest(l,10)
+
+
+Mode <- function(x) {
+  ux <- unique(x)
+  ux[which.max(tabulate(match(x, ux)))]
+}
+Mode(glass_data$Type[f])
+
+
+neighbors <- function(glass_data_normalized,unknown2)
+{
+m <- nrow(glass_data_normalized)
+ds <- numeric(m)
+h <- unknown2
+for (i in 1:m) {
+p <- glass_data_normalized[i,c(1:9)]
+ds[i] <- dist(p,h)
+}
+neighbors<-ds
+}
+j <- neighbors(glass_data_normalized,unknown2)
+
+s <- order(j)
+
+
+k <- 10
+
+k.closest <- function(neighbors,k)
+{
+  ordered.neighbors <- order(neighbors)
+  k.closest <- ordered.neighbors[1:k]
+} 
+
+e <- k.closest(j,10)
+
+
+Mode <- function(x) {
+  ux <- unique(x)
+  ux[which.max(tabulate(match(x, ux)))]
+}
+Mode(glass_data$Type[e])
+```
+
+
+
+
+#Problem 2
+```{r}
+kc_house_data <- read.csv("C:/Users/Meghana Nadig/Downloads/housesalesprediction/kc_house_data.csv")
+summary(kc_house_data)
+#install.packages("tidyverse")
+#library(tidyverse)
+#dim(kc_house_data)
+
+#Data Cleaning
+#Remove extra columns
+house_data <- kc_house_data[-1]
+
+
+#library(lubridate)
+#house_data$age <- (as.Date(house_data$date, origin = "1960-10-01")) - as.Da,te(house_data$yr_built, origin = "1960-10-01")
+
+year <- substr(house_data$date,1,4)
+
+house_data$age <- as.numeric(substr(house_data$date,1,4)) - house_data$yr_built
+house_data$age_ren <-(house_data$date) - house_data$yr_renovated
+house_data <- house_data[,-c(1,16)]
+
+#knn
+set.seed(23)
+idxs <- sample(1:nrow(house_data),as.integer(0.6*nrow(house_data)))
+train_house <- house_data[idxs,]
+validation_house <- house_data[-idxs,]
+
+
+library(class)
+
+#install.packages("caret")
+library(FNN)
+
+library(caret)
+library(FNN)
+k <- 1:30
+train_house<-train_house[,-19]
+validation_house <-validation_house[,-19]
+train_house
+accuracy <- 0
+for(x in k)
+  {
+ 
+knn_model <- knn.reg((train_house[,-19]), NULL, train_house$price, k = x, algorithm = c("kd_tree", "cover_tree", "brute"))
+accuracy[x] <- mean(knn_model$pred == validation_house$price)
+}
+knn_model
+plot(k,accuracy)
+
+
+
+```
+#
+# Problem 3
+```{r}
+occ <- read.csv("C:/Users/Meghana Nadig/Downloads/occupancyratestimeseries.csv", stringsAsFactors = FALSE)
+#1)sa
+n <-nrow(occ);
+Last3 <- occ[n:(n-2), 2];
+sma <- mean(Last3);
+sma; 
+
+#2)wma
+n <-nrow(occ);
+Last3 <- occ[n:(n-2), 2]; 
+weights <- c(4,1,1);
+wt_sum <- weights*Last3;
+wma <- sum(wt_sum)/sum(weights);
+wma; 
+
+#3)ES
+occ$Forcst <-0;
+occ$Error <-0;
+occ$Forcst [1] <- occ[1,2];                                         
+for(i in 2:nrow(occ))
+{
+  occ$Forcst[i]<- occ$Forcst[i-1] + 0.2*occ$Error[i-1]
+  occ$Error[i] <- occ [i,2] - occ$Forcst[i]
+}; 
+n <-nrow(occ);  
+Expsmoothingfit <- occ$Forcst[n] + 0.2*occ$Error[n];
+Expsmoothingfit;         #Output
+
+#4
+mod<- lm(occ$OccupancyRate ~ occ$Period);
+a <- as.numeric(c(18.09))
+LNf <- 34.9419 + 0.0151*167;
+LNf
+stdev<- sd(occ$OccupancyRate)/sqrt(166);
+UL <- LNf + 1.96*stdev; 
+LL <- LNf - 1.96*stdev; 
+UL
+LL
+```
+
+#Question 8
+```{r}
+glass_data <- read.csv("C:/Users/Meghana Nadig/Desktop/Practicum/glassdata.csv", stringsAsFactors = FALSE,header = FALSE)
+
+
+colnames(glass_data) <- c("ID", "RefractiveIndex", "Sodium", "Magnesium", "Aluminum", "Silicon", "Potassium", "Calcium", "Barium",
+                          "Iron", "Type")
+rm(knn)
+unk1 <- glass_data[215,]
+unk2 <- glass_data[216,]
+data_train <- glass_data[,2:11];
+unk1 <- unk1[-1]
+unk2 <- unk2[-1]
+
+data_test_1 <- unk1;
+data_test_2 <- unk2;
+library(class)
+
+#Normalizing column 1 and 2
+normalize4 <- function(x) {
+  return((x - min(x)) / (max(x) - min(x)))
+}
+glass_data_n <- as.data.frame(lapply(glass_data[1:2], normalize4))
+
+
+# Z-Score normalization for remaining columns
+normalize5 <- function(x) {
+  return((x - mean(x)) / sd(x))
+}
+
+U12 <- as.data.frame(lapply(glass_data[,2:3], normalize4))
+
+U29 <- as.data.frame(lapply(glass_data[,4:10], normalize5))
+
+F_data <- cbind(glass_data[,1], U12, U29, glass_data[,11])
+
+
+colnames(F_data) <- c("ID", "RefractiveIndex", "Sodium", "Magnesium", "Aluminum", "Silicon", "Potassium", "Calcium", "Barium", "Iron", "Type")
+
+ch1 <- F_data[1:214,]
+
+ch2 <- F_data[215,]
+
+ch3 <- F_data[216,]
+
+var <- glass_data[1:214,11]
+var
+library(class)
+m1 <- knn(train = ch1[,2:10],ch2[,2:10],cl = var, k = 14);
+m2 <- knn(train = ch1[,2:10],ch3[,2:10],cl = var, k = 14);
+m1
+m2
+
+
+
+
+
+```
+
+
+#Question 9
+```{r}
+library(caret)
+glass_data_new <- glass_data[1:214,]
+training_data <- createDataPartition((glass_data_new$Type),p = .50, list = FALSE)
+
+validation <- glass_data_new[training_data,]
+Train <- glass_data_new[-training_data,]
+
+train_target <- Train[,11]
+validation_target <- validation[,11]
+m3 <- knn(train = Train,validation,train_target,k=14)
+
+
+#using confusion matrix to find accuracy
+confusionMatrix <- confusionMatrix(m3,validation_target)
+confusionMatrix
+```
+#Question 10
+```{r}
+dist <- function(p,q)
+{
+ d <- 0
+ for (i in 1: length(p)) {
+ d <- d + (p [i]-q[i])^2
+ }
+ dist <- sqrt(d)
+ }
+ j <- dist(p,q)
+ 
+
+neighbors <- function(glass_data_normalized,unknown1)
+{
+m <- nrow(glass_data_normalized)
+ds <- numeric(m)
+f <- unknown1
+for (i in 1:m) {
+p <- glass_data_normalized[i,c(2:10)]
+ds[i] <- dist(p,f)
+}
+neighbors<-ds
+}
+
+#l <- neighbors(glass_data_normalized,unknown1)
+#o <- order(l)
+#k <- 10
+
+k.closest <- function(neighbors,k)
+{
+  ordered.neighbors <- order(neighbors)
+  k.closest <- ordered.neighbors[1:k]
+} 
+#f <- k.closest(l,10)
+
+Mode <- function(x) {
+  ux <- unique(x)
+  ux[which.max(tabulate(match(x, ux)))]
+}
+Mode(glass_data$Type[f])
+
+tem <- numeric(nrow(validation[,2:10]))
+
+koala <- function(x)
+{
+
+  k =x 
+  #print(k) #comented to not print
+ valid <- validation[,2:10] 
+ j <- nrow(valid) 
+ for (i in 1:j)
+  {
+  n <- neighbors(Train, valid[i,])
+  f <- k.closest(n,k)
+  Mode(Train$Type[f])
+  tem[i] <- Mode(Train$Type[f]) 
+  }
+valid$new <- tem 
+#print(confusionMatrix(valid$new, validation$Type))#comented to not print
+}
+
+
+for (i in 1:10){
+  p <-  as.numeric(5)
+  koala (p+i-1)
+}
+
+iammad <- as.numeric(c(5,6,7,8,9,10, 11, 12, 13, 14))
+jam <- as.numeric(c(65.74,63.89,65.74,62.04,61.11,62.96,62.96,61.46,63.49,64.26))
+
+qplot(iammad, jam)
+
+```
+
+
+#Question 11
+```{r}
+library(ggplot2)
+var1 <- as.numeric(100)
+
+E_rate <- var1 - jam
+
+
+qplot(iammad, E_rate, main= "Graoh of Errror Rates") + geom_line()
+```
+#Question 12
+```{r}
+# For k=6
+predict_6 <- knn(train = na.omit(Train), test = validation, cl = train_target, k = 6)
+
+i <- confusionMatrix(predict_6, validation_target)
+i
+
+```
+
+#Question13
+- It will be slow. As number of feature and cases increases it slows down.
+- It is a lazy learning algorithm it will run through the entire training dataset to predict a new value.
+- so as w,m and n increases the speed decreases.
+

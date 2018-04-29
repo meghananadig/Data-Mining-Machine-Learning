@@ -1,0 +1,257 @@
+---
+title: "Meghana_Nadig_Assignment5"
+output:
+  pdf_document: default
+  html_notebook: default
+  html_document: default
+---
+
+Problem 1
+
+Step 1: Importing Data
+```{r}
+credit <- read.csv("C:/Users/Meghana Nadig/Downloads/credit.csv")
+
+# Checking the structure of the data
+str(credit)
+```
+
+Step 2: Exploring and preparing data
+
+```{r}
+# Exploring the checking and savings balance as they may prove to be important predictors of loan default status 
+
+table(credit$checking_balance)
+
+table(credit$savings_balance)
+```
+
+```{r}
+# Exploring numeric features
+
+summary(credit$months_loan_duration)
+
+summary(credit$amount)
+```
+
+```{r}
+# Checking the number of default applicants
+
+table(credit$default)
+```
+
+Step 3: Data Preparation
+
+```{r}
+set.seed(123)
+
+# Selecting 900 values at random
+train_sample <- sample (1000,900)
+
+str(train_sample)
+```
+
+```{r}
+# Training dataset
+credit_train <- credit[train_sample,]
+
+# Testing dataset
+credit_test <- credit[-train_sample,]
+
+# Checking for equal defaulted loans in each dataset
+prop.table(table(credit_train$default))
+
+prop.table(table(credit_test$default))
+```
+
+Step 3: Training a model on the data
+
+```{r}
+#Installing the C50 package
+#install.packages("C50")
+#install.packages("libcoin")
+library(libcoin)
+library(C50)
+```
+
+```{r}
+# Creating the model
+credit_model <- C5.0(credit_train[-17],factor(credit_train$default))
+
+credit_model
+
+```
+
+```{r}
+# Checking trees decision
+
+summary(credit_model)
+```
+
+Step 4 - Evaluating Model Performance
+
+```{r}
+# Applying decision tree to test  dataset
+credit_pred <- predict(credit_model,credit_test)
+
+library(gmodels)
+
+CrossTable(credit_test$default, credit_pred,
+           prop.chisq = FALSE,prop.c = FALSE,prop.r = FALSE,
+           dnn = c('actual default','predicted default'))
+```
+Out of the 100 test loan application records, our model correctly predicted that 
+60 did not default and 14 did default, resulting in an accuracy of 74 percent and
+an error rate of 26 percent.
+
+
+Step 5: Improving Model Performance
+
+```{r}
+# Boosting the accuracy of decision trees
+credit_boost10 <- C5.0(credit_train[-17],factor(credit_train$default), trials = 10)
+
+credit_boost10
+
+summary(credit_boost10)
+```
+
+```{r}
+credit_boost_pred10 <- predict(credit_boost10,credit_test)
+
+CrossTable(credit_test$default, credit_boost_pred10,
+           prop.chisq = FALSE,prop.c = FALSE,prop.r = FALSE,
+           dnn = c('actual default','predicted default'))
+```
+Here, we reduced the total error rate from 26 percent prior to boosting down to
+24 percent in the boosted model.
+
+```{r}
+# Assigning penalty to different errors
+
+matrix_dimensions <- list(c("no","yes"),c("no","yes"))
+
+names(matrix_dimensions) <- c("predicted","actual")
+
+# Assuming a loan default costs the bank four times as much as a missed opportunity
+error_cost <- matrix(c(0, 1, 4, 0), nrow = 2)
+
+error_cost
+```
+
+```{r}
+# Applying error cost to decision tree
+
+credit_cost <- C5.0(credit_train[-17], factor(credit_train$default), costs = error_cost)
+
+credit_cost_pred <- predict(credit_cost, credit_test)
+
+CrossTable(credit_test$default, credit_cost_pred, 
+           prop.chisq = FALSE, prop.c = FALSE, prop.r = FALSE, 
+           dnn = c('actual default', 'predicted default'))
+```
+
+This version makes more mistakes overall: 41 percent error here versus 26 percent in the boosted case. However,this model is now predicting defaults correctly 79 percent (26/33) of the time resulting in reduction of false negatives at the expense of increasinf false positives.
+
+
+Problem 2:
+
+Step 1:Importing Data
+```{r}
+mushrooms <- read.csv("C:/Users/Meghana Nadig/Downloads/mushrooms.csv")
+
+str(mushrooms)
+```
+
+Step 2: Exploring and preparing the data
+
+```{r}
+# Dropping the"veil_type" variable from the dataset as it does not provide any useful information for prediction
+mushrooms$veil_type <- NULL
+
+# Checking the distribution of mushroom "type" class variable
+table(mushrooms$type)
+```
+
+Step 3: Training a model on the data
+
+```{r}
+# Installing the "RWeka" package
+#install.packages("RWeka")
+
+library(RWeka)
+```
+
+```{r}
+# Training a model
+mushroom_1R <- OneR(type ~ ., data = mushrooms)
+
+mushroom_1R
+```
+
+Step 4: Evaluating model performance
+
+```{r}
+summary(mushroom_1R)
+```
+
+It classifies 120 poisonous
+mushrooms as edible-which makes for an incredibly dangerous mistake.
+
+
+Step 5: Improving model performance
+
+```{r}
+# Training the model with JRip() function
+mushroom_JRip <- JRip(type ~ ., data = mushrooms)
+
+mushroom_JRip
+```
+
+The JRip() classifier learned a total of nine rules from the mushroom data.
+Notably, there were no misclassified mushroom samples using these nine rules.
+
+Problem 3:
+
+
+KNN: KNN algorithm is one of the simplest classification algorithm. Even with such simplicity, it can give highly competitive results.It can be used for both classification and regression predictive problems. However, it is more widely used in classification problems in the industry. There is no model associated to them, so errors have to be estimated computationally, but it provides one simple solution to classifying a new object based on known results in a reference set.A peculiarity of the k-NN algorithm is that it is sensitive to the local structure of the data.A drawback of the basic "majority voting" classification occurs when the class distribution is skewed.
+
+Naive Bayes:Naive Bayes model is easy to build and particularly useful for very large data sets. Along with simplicity, Naive Bayes is known to outperform even highly sophisticated classification methods.It can be extremely fast relative to other classification algorithms.It's main strength is its efficiency; it combines efficiency with good accuracy it is often used as a baseline in text
+classification research. Another advantage of naive Bayes is that it only requires a small number of training data to estimate the parameters necessary for classification.However, they are 'naive' - i.e. they assume the features are independent - this contrasts with other classifiers.The independence assumption cannot usually be assumed, and in many cases,it is simply wrong.
+
+C5.0 Decision Trees:  The C5.0 Decision Trees can predict only a categorical target. They are quite robust in the presence of problems such as missing data and large numbers of input fields. They usually do not require long training times to estimate. In addition, C5.0 models tend to be easier to understand than some other model types, since the rules derived from the model have a very straightforward interpretation. C5.0 also offers the powerful boosting method to increase accuracy of classification.In spite of their wide applicability, it is worth noting some scenarios where trees may not be an ideal fit. One such case might be a task where the data
+has a large number of nominal features with many levels or it has a large number of numeric features. These cases may result in a very large number of decisions and an overly complex tree. They may also contribute to the tendency of decision trees to overfit data.
+
+RIPPER Rules: These produces a simpler model than a comparable decision tree that are human-readable and eay to understand.They are efficient on large and noisy datasets.But they might not perform as well as more complex models. They are also not ideal for working with numeric data. They may sometimes result in rules that seem to defy common sense or expert knowledge.
+
+Problem 4:
+
+Model ensembles is a technique of combining two or more algorithms of similar or dissimilar types called base learners. This is done to make a more robust system which incorporates the predictions from all the base learners.It consists of only a concrete finite set of alternative models, but typically allows for much more flexible structure to exist among those alternatives.
+
+Two defining characteristics of ensemble models are:
+
+1. They build multiple different models from the same dataset by inducing each model using a modified version of the dataset.
+
+2. They make a prediction by aggregating the predictions of different models in the ensemble.
+
+There are two standard approaches to creating ensembles:
+
+Bagging:
+It involves having each model in the ensemble vote with equal weight.
+In order to promote model variance, bagging trains each model in the ensemble using a randomly drawn subset of the training set.
+As an example, the random forest algorithm combines random decision trees with bagging to achieve very high classification accuracy.
+
+Boosting:
+It is a sequential technique in which, the first algorithm is trained on the entire dataset and the subsequent algorithms are built by fitting the residuals of the first algorithm, thus giving higher weight to those observations that were poorly predicted by the previous model.
+It relies on creating a series of weak learners each of which might not be good for the entire dataset but is good for some part of the dataset. Thus, each model actually boosts the performance of the ensemble.
+
+Bagging is better with respect to ease of use and training time than boosting as its simpler to implement and parallelize.
+
+Disadvantages of model ensembling are:
+
+Ensembling reduces the model interpretability and makes it very difficult to draw any crucial business insights at the end.It is time-consuming and thus might not be the best idea for real-time applications.
+
+# References:
+1. https://da5030.weebly.com/uploads/8/6/5/9/8659576/baggingboostingkelleher.pdf
+2.https://www.analyticsvidhya.com/blog/2017/02/introduction-to-ensembling-along-with-implementation-in-r/
+3. https://en.wikipedia.org/wiki/Ensemble_learning#Boosting 

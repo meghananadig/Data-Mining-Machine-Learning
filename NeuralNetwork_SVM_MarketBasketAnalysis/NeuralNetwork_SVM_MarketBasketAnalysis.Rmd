@@ -1,0 +1,293 @@
+---
+title: "Assignmnt 7"
+output:
+  pdf_document: default
+  html_notebook: default
+  html_document: default
+---
+
+Problem 1
+
+Step 1: Collecting Data
+```{r}
+# Importing the data
+concrete <- read.csv("C:/Users/Meghana Nadig/Downloads/concrete.csv")
+
+str(concrete)
+```
+
+Step 2: Exploring and preparing the data
+```{r}
+# Normalizing the data
+
+normalize <- function(x) {
+  return((x - min(x)) / (max(x) - min(x)))
+}
+
+concrete_norm <- as.data.frame(lapply(concrete,normalize))
+
+summary(concrete_norm)
+```
+
+```{r}
+# Training data
+concrete_train <- concrete_norm[1:773,]
+
+# Testing data
+concrete_test <- concrete_norm[774:1030,]
+```
+
+Step 3: Training a model on the data
+
+```{r}
+#install.packages("neuralnet")
+
+library(neuralnet)
+```
+
+```{r}
+# Model
+concrete_model <- neuralnet(strength ~ cement + slag + ash + water + superplastic + coarseagg + fineagg +age, data = concrete_train)
+
+plot(concrete_model)
+```
+
+Step 4: Evaluating model performance
+
+```{r}
+# Testing the model
+model_results <- compute(concrete_model, concrete_test[1:8])
+
+predicted_strength <- model_results$net.result
+summary(model_results)
+
+# Finding correlation
+cor(predicted_strength, concrete_test$strength)
+```
+
+Step 5: Improving model performance
+
+```{r}
+# Improving model
+concrete_model2 <- neuralnet(strength ~ cement + slag + ash + water + superplastic + coarseagg + fineagg +age, data = concrete_train, hidden = 5)
+
+plot(concrete_model2)
+```
+```{r}
+# Comparing predictd values to true values
+model_results2 <- compute(concrete_model2, concrete_test[1:8])
+
+predicted_strength2 <- model_results2$net.result
+
+cor(predicted_strength2, concrete_test$strength)
+
+```
+
+
+Problem 2
+
+Step 1: Collecting data
+
+```{r}
+# Importing the data
+letters <- read.csv("C:/Users/Meghana Nadig/Downloads/letterdata.csv")
+
+str(letters)
+```
+
+Step 2: Exploring and preparing the data
+
+```{r}
+# Training dataset
+letters_train <- letters[1:16000,]
+
+# Testing dataset
+letters_test <- letters[16001:20000,]
+```
+
+Step 3: Training a model on the data
+
+```{r}
+#install.packages("kernlab")
+
+library(kernlab)
+```
+
+```{r}
+# Building the model
+set.seed(54321)
+
+letter_classifier <- ksvm(letter ~ ., data = letters_train, kernal ="vanilladot")
+
+letter_classifier
+```
+
+Step 4: Evaluating model performance
+
+```{r}
+# Making predictions on testing dataset
+letter_predictions <- predict(letter_classifier, letters_test)
+
+head(letter_predictions)
+```
+
+```{r}
+# Comparing predicted letter to the true letter
+table(letter_predictions, letters_test$letter)
+```
+
+```{r}
+# Calculating the overall accuracy
+agreement <- letter_predictions == letters_test$letter
+
+table(agreement)
+```
+
+```{r}
+# Accuracy in terms of percentage
+prop.table(table(agreement))
+```
+
+Step 5: Improving model performance
+
+```{r}
+# Training data using RBF-based SVM
+set.seed(12345)
+
+letter_classifier_rbf <- ksvm(letter ~ ., data = letters_train, kernel = "rbfdot")
+
+```
+
+```{r}
+# Predicting on testing dataset
+letter_predictions_rbf <- predict(letter_classifier_rbf, letters_test)
+
+head(letter_predictions_rbf)
+```
+
+```{r}
+# Comparing the accuracy to linear SVM
+agreement_rbf <- letter_predictions_rbf == letters_test$letter
+
+table(agreement_rbf)
+```
+
+```{r}
+# Accuracy in terms of percentage
+prop.table(table(agreement_rbf))
+```
+
+Problem 3:
+
+Step 1: Collecting data
+
+```{r}
+#install.packages("arules")
+
+library(arules)
+```
+
+
+```{r}
+# Importing the data
+
+groceries <- read.transactions("C:/Users/Meghana Nadig/Downloads/groceries.csv", sep = ",")
+```
+
+```{r}
+summary(groceries)
+```
+
+Step 2: Exploring and preparing the data
+```{r}
+# Examining transaction data
+inspect(groceries[1:5])
+```
+
+```{r}
+itemFrequency(groceries[,1:3])
+```
+
+```{r}
+# Vizualizing item support - item frequency plot
+
+itemFrequencyPlot(groceries, support = 0.1)
+```
+
+```{r}
+# Limiting the plot to a specific number
+
+itemFrequencyPlot(groceries, topN = 20)
+```
+```{r}
+# Plotting the sparse matrix
+
+image(groceries[1:5])
+```
+
+```{r}
+# Selecting random transaction
+
+image(sample(groceries, 100))
+```
+
+Step 3: Training a model on the data
+
+```{r}
+# Finding associations
+
+apriori(groceries)
+```
+
+```{r}
+# Finding associations
+
+groceryrules <- apriori(groceries, parameter = list(support = 0.006, confidence = 0.25, minlen = 2))
+
+groceryrules
+```
+
+Step 4: Evaluating model performance
+
+```{r}
+summary(groceryrules)
+```
+
+```{r}
+# Identifying specific rules
+
+inspect(groceryrules[1:3])
+```
+
+Step 5: Improving model performance
+
+```{r}
+# Sorting the set of association rules
+
+inspect(sort(groceryrules, by = "lift")[1:5])
+```
+
+```{r}
+# Taking subset of association rules
+berryrules <- subset(groceryrules, items %in% "berries")
+
+inspect(berryrules)
+```
+
+```{r}
+# Saving association rules to a file or data frame
+
+# CSV File
+
+write(groceryrules, file = "groceryrules.csv", sep = ",", quote = TRUE, row.names = FALSE)
+```
+
+
+```{r}
+# Converting rules into R data frame
+
+groceryrules_df <- as(groceryrules, "data.frame")
+
+str(groceryrules_df)
+```
+

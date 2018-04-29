@@ -1,0 +1,299 @@
+---
+title: "Meghana_Nadig_Practicum3"
+author: "Meghana_Nadig"
+date: "April 12, 2018"
+output: pdf_document
+---
+# Problem 1
+
+```{r}
+bank_data <- read.csv("C:/Users/Meghana Nadig/Downloads/bank/bank-full.csv", sep = ";")
+test_data <- read.csv("C:/Users/Meghana Nadig/Downloads/bank/bank.csv", sep = ";")
+str(bank_data)
+
+```
+
+
+# Exploring Data
+
+```{r}
+prop.table(table(bank_data$y))
+nrow(bank_data)
+
+prop.table(table(test_data$y))
+nrow(test_data)
+
+summary(bank_data)
+str(bank_data)
+```
+
+# Support Vector Machine
+
+```{r}
+library(kernlab)
+set.seed(132)
+
+# Building the SVM Model
+svm_model <- ksvm(y ~ ., data = bank_data, kernal ="vanilladot")
+
+svm_model
+```
+
+# Evaluating model performance
+
+```{r}
+# Making predictions on testing dataset
+data_predictions <- predict(svm_model, test_data)
+
+head(data_predictions)
+```
+
+```{r}
+# Comparing predicted 
+table(data_predictions, test_data$y)
+```
+
+```{r}
+# Calculating the overall accuracy
+agreement <- data_predictions == test_data$y
+
+table(agreement)
+```
+
+```{r}
+# Accuracy in terms of percentage
+prop.table(table(agreement))
+```
+
+
+# Absolute Accuracy
+
+```{r}
+library("caret")
+# SVM
+
+confusionMatrix(data_predictions,test_data$y)
+
+```
+
+# Area Under Curve (AUC)
+
+```{r}
+# SVM_AUC
+#install.packages("ROCR")
+
+library(ROCR)
+
+svm_a <- prediction(as.numeric(data_predictions),as.numeric(test_data$y))
+
+eval <- performance(svm_a, "acc")
+
+eval
+
+```
+
+#Neural Network
+# Reading the data
+```{r}
+bank_data <- read.csv("C:/Users/Meghana Nadig/Downloads/bank/bank-full.csv", sep = ";")
+bank_test <- read.csv("C:/Users/Meghana Nadig/Downloads/bank/bank.csv", sep = ";")
+str(bank_data)
+```
+
+#Converting factors to dummy variables and creating a new dataframe
+
+```{r}
+#str(bank_data)
+#bank_data$job_DV <- as.numeric(factor(bank_data$job))
+#bank_data$marital_DV <- as.numeric(factor(bank_data$marital))
+#bank_data$education_DV <- as.numeric(factor(bank_data$education))
+#bank_data$default_DV <- as.numeric(factor(bank_data$default))
+#bank_data$housing_DV <- as.numeric(factor(bank_data$housing))
+#bank_data$loan_DV <- as.numeric(factor(bank_data$loan))
+#bank_data$contact_DV <- as.numeric(factor(bank_data$contact))
+#bank_data$month_DV <- as.numeric(factor(bank_data$month))
+#bank_data$poutcome_DV <- as.numeric(factor(bank_data$poutcome))
+#bank_data$y_DV <- as.numeric(factor(bank_data$y))
+
+#df <- data.frame(bank_data[,c(1,6,10,12:15,18:27)])
+
+
+#str(test_data)
+#test_data$job_DV <- as.numeric(factor(test_data$job))
+#test_data$marital_DV <- as.numeric(factor(test_data$marital))
+#test_data$education_DV <- as.numeric(factor(test_data$education))
+#test_data$default_DV <- as.numeric(factor(test_data$default))
+#test_data$housing_DV <- as.numeric(factor(test_data$housing))
+#test_data$loan_DV <- as.numeric(factor(test_data$loan))
+#test_data$contact_DV <- as.numeric(factor(test_data$contact))
+#test_data$month_DV <- as.numeric(factor(test_data$month))
+#test_data$poutcome_DV <- as.numeric(factor(test_data$poutcome))
+#test_data$y_DV <- as.numeric(factor(test_data$y))
+
+#df_test <- data.frame(test_data[,c(1,6,10,12:15,18:27)])
+library("caret")
+
+dummybank <-dummyVars("~.",data=bank_data, fullRank = T) #creating dummy variables from factors in bank set.
+bankdummy <- data.frame(predict(dummybank, newdata = bank_data))
+
+dummytest <-dummyVars("~.",data=bank_test, fullRank = T) #creating the dummy variables in test set.
+testdummy <- data.frame(predict(dummytest, newdata = bank_test))
+
+
+
+
+```
+
+#Step 2: Exploring and preparing the data
+
+```{r}
+# Normalizing the data
+
+normalize <- function(x) {
+  return((x - min(x)) / (max(x) - min(x)))
+}
+
+df_norm <- as.data.frame(lapply(bankdummy,normalize))
+df_test_norm <- as.data.frame(lapply(testdummy,normalize))
+
+summary(df_norm)
+summary(df_test_norm)
+```
+
+#Problem 2
+
+
+
+# Importing Data
+```{r}
+library(arules)
+
+plants <- read.transactions("https://archive.ics.uci.edu/ml/machine-learning-databases/plants/plants.data", format = "basket", sep = ",", cols = 1)
+
+#summary(plants)
+```
+
+```{r}
+# Forming sparse matrix of the transaction data
+plants1 <- as.data.frame(as(plants, "matrix"))
+
+plants1[,1:70] <- lapply(plants1[,1:70], as.integer)
+
+# Making new variable for preserving the original data
+k <- sample(34781,2000)
+samp <- plants1[k,]
+
+
+```
+
+
+
+Method 2: Using kmeans() for the model by first finding Principle Compenent Analysis of the data
+```{r}
+# Data
+
+plants3 <- plants1
+
+library(caret)
+
+```
+
+
+```{r}
+# PCA analysis using BoxCox
+
+trans <- preProcess(plants3[,1:70], method = c("BoxCox","center","scale","pca"))
+
+pca<- predict(trans,plants3[,1:70])
+
+head(pca)
+```
+
+```{r}
+# Model
+# Selecting number of clusters = 6
+plants3_clusters <- kmeans(plants3[1:1000,2:5],6)
+```
+
+```{r}
+plants3_clusters$size
+```
+
+```{r}
+# Examining the coordinates of clusters
+plants3_clusters$centers
+```
+
+# Visualization of cluster
+
+```{r}
+# Importing the .csv file of the data
+plant_csv <- read.transactions("https://archive.ics.uci.edu/ml/machine-learning-databases/plants/plants.data", format = "basket", sep = ",", cols = 1)
+
+
+library(klaR)
+library(MASS)
+library("fpc")
+
+# Model
+# Selecting number of clusters = 6
+#plants2_clusters <- kmodes(plants2[1:1000,2:5],6)
+
+plant_cluster <- kmodes(samp,7,iter.max = 10, weighted = FALSE)
+plotcluster(samp,plant_cluster$cluster)
+```
+
+
+
+# Problem 2
+# Question 3
+
+```{r}
+
+# Data
+plant <- read.transactions("https://archive.ics.uci.edu/ml/machine-learning-databases/plants/plants.data", format = "basket", sep = ",", cols = 1)
+
+summary(plant)
+```
+
+```{r}
+# Examining transaction data
+inspect(plant[1:3])
+```
+
+```{r}
+itemFrequency(plant[,1:3])
+```
+
+```{r}
+# Vizualizing item support - item frequency plot
+
+itemFrequencyPlot(plant, support = 0.1)
+```
+
+```{r}
+# Limiting the plot to a specific number
+
+itemFrequencyPlot(plant, topN = 20)
+```
+
+```{r}
+# Plotting the sparse matrix
+
+image(plant[1:5])
+```
+
+```{r}
+# Selecting random transaction
+
+image(sample(plant, 100))
+```
+
+```{r}
+# Finding associations
+
+apriori(plant)
+```
+
+
+

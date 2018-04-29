@@ -1,0 +1,362 @@
+---
+title: "Meghana_Nadig_Assignment6"
+output:
+  pdf_document: default
+  html_notebook: default
+  html_document: default
+---
+
+Problem 1:
+
+```{r}
+# Importing Data
+
+stu.math <- read.csv("C:/Users/Meghana Nadig/Downloads/student-mat.csv",sep=";",header=TRUE,stringsAsFactors = TRUE)
+str(stu.math)
+```
+```{r}
+# Checking the distribution of G3
+hist(stu.math$G3)
+```
+```{r}
+#install.packages("psych")
+
+library(psych)
+
+
+```
+
+```{r}
+# Creating a Scatter Plot
+# Selecting 4 continuous variables: "age","absences","G1","G2"
+
+pairs.panels(stu.math[c("age", "absences", "G1", "G2")])
+```
+
+
+
+```{r}
+# Building a Regression Model
+# Selecting 4 variables: "paid"(extra paid classes within the course subject),"age" (student's age),"G1" (first period grade),"G2" (first period grade)
+
+# Converting categorical variable to binary indicator (Dummy code)
+stu.math$paid.bin <- ifelse(stu.math$paid == "yes", 1, 0)
+
+stu.math$paid.bin
+```
+
+
+```{r}
+#install.packages("caTools")
+library(caTools)
+
+split <- sample.split(stu.math, SplitRatio = 0.8)
+
+training <- subset(stu.math, split == TRUE)
+
+testing <- subset(stu.math, split == FALSE)
+```
+
+
+```{r}
+# Training the model
+
+m <- lm(G3 ~ paid.bin + age + G1 + G2, data = training)
+
+summary(m)
+```
+
+Backfitting (p-value)
+
+```{r}
+# Removing paid.bin (highest p-value) from the model
+
+m1 <- lm(G3 ~ age + G1 + G2, data = training)
+
+summary(m1)
+
+```
+
+```{r}
+# Removing age (second highest p-value) from the model
+
+m2 <- lm(G3 ~ G1 + G2, data = training)
+
+summary(m2)
+```
+Regression Equation = -1.98 + 0.18*G1 + 0.96*G2
+
+The p-value backward elimination technique is used.
+
+Predicting G3
+
+```{r}
+G3_pred <- predict(m2,testing)
+G3_pred
+```
+
+95% Confidence Interval
+
+```{r}
+# Residual Standard error is 2.023
+
+# Finding 95% CI
+
+G3_pred[1] - 1.96*2.023
+
+G3_pred[1] + 1.96*2.023
+
+```
+Therefore, the 95% CI is between 3.06 and 11
+
+RMSE
+
+```{r}
+# Testing Model
+sqerr_test <- (stu.math[33] - G3_pred)^2
+msqerr_test <- mean(sqerr_test)
+rmse_test <- sqrt(msqerr_test)
+rmse_test
+```
+Therefore, the RMSE for testing model is 5.77
+
+```{r}
+# Training Model
+m3 <- lm(G3 ~ G1 + G2, data = testing)
+G3_pred_train <- predict(m2,training)
+
+sqerr_train <- (stu.math[33] - G3_pred_train)^2
+msqerr_train <- mean(sqerr_train)
+rmse_train <- sqrt(msqerr_train)
+rmse_train
+```
+
+Therefore, the RMSE for training model is 6.22
+
+Problem 2: 
+
+```{r}
+
+stu.math1 <- stu.math
+# Adding new column
+stu.math1$paid.bin <- NULL
+stu.math1["PF"] <- NA
+stu.math1$PF <- ifelse(stu.math1$G3 < 10, "F", "P")
+
+stu.math1
+
+```
+
+```{r}
+# Dummy code
+
+stu.math1$PF.dv <- ifelse(stu.math1$PF == "P", 1, 0)
+
+stu.math1$PF.dv
+```
+
+```{r}
+# Converting categorical variable to binary indicator (Dummy code)
+stu.math1$paid.dv <- ifelse(stu.math1$paid == "yes", 1, 0)
+
+stu.math1$paid.dv
+
+```
+
+```{r}
+# Splitting the data
+
+split_data <- sample.split(stu.math1, SplitRatio = 0.8)
+
+train <- subset(stu.math1, split == TRUE)
+
+test <- subset(stu.math1, split == FALSE)
+```
+
+
+```{r}
+# Training the model
+
+model <- glm(PF.dv ~ paid.dv + age + G1 + G2, data = train, family = binomial)
+
+summary(model)
+```
+
+Backfitting (p-value)
+
+```{r}
+# Removing paid.dv (highest p-value) from the model
+
+model2 <- glm(PF.dv ~ age + G1 + G2, data = train, family = binomial)
+
+summary(model2)
+```
+
+```{r}
+# Removing age (second highest p-value) from the model
+
+model3 <- glm(PF.dv ~ G1 + G2, data = train, family = binomial)
+
+summary(model3)
+```
+```{r}
+# Removing G1 from the model
+
+model4 <- glm(PF.dv ~ G2, data = train, family = binomial)
+
+summary(model4)
+```
+
+
+The p-value backward elimination technique is used.
+
+Predicting pass or fail
+
+```{r}
+PF_pred <- predict(model4, test, type = "response")
+PF_pred
+```
+
+Regression Equation
+
+P(Pass) = 1/(1 + e-(-17.6 + 1.9*G2 ))
+
+```{r}
+# For age = 15 and G2 = 10, P(Pass) = 80%
+
+new <- data.frame(G2=10)
+res <- predict(model4,new,type = "response")
+res
+```
+Accuracy of the model
+
+```{r}
+# Creating Confusion Matrix
+
+(table(ActualValue=test$PF.dv, PredictedValue=PF_pred>0.5))
+```
+
+Therefore, accuracy of model is (22+55)/(22+55+5+0) = 93.9%
+
+
+Problem 3:
+
+Collecting and Exploring the data
+
+```{r}
+wine <- read.csv("C:/Users/Meghana Nadig/Downloads/whitewines.csv")
+
+str(wine)
+```
+
+```{r}
+hist(wine$quality)
+```
+
+```{r}
+# Splitting data into training and testing dataset
+
+wine_train <- wine[1:3750, ]
+
+wine_test <- wine[3751:4898, ]
+```
+
+Training model on data
+
+```{r}
+#install.packages("rpart")
+library(rpart)
+```
+
+```{r}
+m.rpart <- rpart(quality ~ ., data = wine_train)
+
+m.rpart
+```
+
+Visualizing decision trees
+
+```{r}
+#install.packages("rpart.plot")
+library(rpart.plot)
+
+rpart.plot(m.rpart, digits = 3)
+```
+
+```{r}
+rpart.plot(m.rpart, digits = 4, fallen.leaves = TRUE,
+           type = 3, extra = 101)
+```
+
+Evaluating model performance
+
+```{r}
+p.rpart <- predict(m.rpart, wine_test)
+
+summary(p.rpart)
+
+summary(wine_test$quality)
+
+cor(p.rpart, wine_test$quality)
+```
+
+Measuring performance with mean absolute error
+
+```{r}
+MAE <- function(actual, predicted) {
+mean(abs(actual - predicted))
+}
+
+MAE(p.rpart, wine_test$quality)
+```
+
+```{r}
+# Mean quality rating in the training data
+
+mean(wine_train$quality)
+```
+
+
+```{r}
+# Mean quality rating in the testing data
+
+MAE(5.87, wine_test$quality)
+```
+
+Improving model performance
+```{r}
+library(RWeka)
+
+m.m5p <- M5P(quality ~ ., data = wine_train)
+
+m.m5p
+```
+
+```{r}
+summary(m.m5p)
+```
+
+```{r}
+p.m5p <- predict(m.m5p, wine_test)
+
+summary(p.m5p)
+```
+
+```{r}
+# Finding corelation
+cor(p.m5p, wine_test$quality)
+
+# Mean absolute error
+MAE(wine_test$quality, p.m5p)
+```
+
+RSME of the model
+```{r}
+RSME <- function(actual, predicted) {
+sqrt(mean((actual - predicted)^2))
+}
+
+RSME(wine_test$quality,p.m5p)
+RSME
+```
+Therefore, the RSME of the model is 0.72

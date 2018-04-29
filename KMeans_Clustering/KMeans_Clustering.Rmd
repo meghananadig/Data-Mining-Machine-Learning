@@ -1,0 +1,189 @@
+---
+title: "Assignment 8"
+output:
+  pdf_document: default
+  html_notebook: default
+  html_document: default
+---
+
+Q.1 
+
+Step 1: Collecting Data
+
+```{r}
+# Importing dataset
+teens <- read.csv("C:/Users/Meghana Nadig/Downloads/snsdata.csv")
+
+str(teens)
+```
+
+Step 2: Exploring and preparing the data
+
+```{r}
+# Spotting missing values
+
+table(teens$gender, useNA = "ifany")
+
+summary(teens$age)
+```
+
+```{r}
+# Data cleaning
+
+teens$age <- ifelse(teens$age >= 13 & teens$age < 20, teens$age, NA)
+
+summary(teens$age)
+
+```
+
+```{r}
+# Dummy coding missing values
+
+teens$female <- ifelse(teens$gender == "F" & !is.na(teens$gender), 1, 0)
+
+teens$no_gender <- ifelse(is.na(teens$gender), 1, 0)
+
+table(teens$gender, useNA = "ifany")
+
+table(teens$female, useNA = "ifany")
+
+table(teens$no_gender, useNA = "ifany")
+```
+
+```{r}
+# Imputing the missing values
+
+mean(teens$age, na.rm = TRUE)
+
+aggregate(data = teens, age ~ gradyear, mean, na.rm = TRUE)
+
+```
+
+```{r}
+# Imputing missing values
+
+ave_age <- ave(teens$age, teens$gradyear, FUN = function(x) mean(x, na.rm = TRUE))
+
+teens$age <- ifelse(is.na(teens$age), ave_age, teens$age)
+
+summary(teens$age)
+```
+
+Step 3: Training a model on the data
+
+```{r}
+library(stats)
+
+# Selecting 36 features
+interests <- teens[5:40]
+
+# Z-score standardization
+interests_z <- as.data.frame(lapply(interests, scale))
+
+set.seed(2345)
+
+# Model
+teen_clusters <- kmeans(interests_z, 5)
+```
+
+Step 4: Evaluating model performance
+
+```{r}
+# Obtaining the size of clusters
+teen_clusters$size
+```
+
+```{r}
+# Examining the coordinates of clusters
+teen_clusters$centers
+```
+
+Step 5: Improving model performance
+
+```{r}
+# Adding the cluster column to dataset
+
+teens$cluster <- teen_clusters$cluster
+```
+
+```{r}
+# First 5 teens
+
+teens[1:5, c("cluster", "gender", "age", "friends")]
+```
+
+```{r}
+# Demographic characteristcs
+
+aggregate(data = teens, age ~ cluster, mean)
+```
+
+```{r}
+# Females by cluster
+
+aggregate(data = teens, female ~ cluster, mean)
+```
+
+```{r}
+# Number of friends per user
+
+aggregate(data = teens, friends ~ cluster, mean)
+```
+
+
+Problem 2:
+
+
+1. What are various ways to predict a binary response variable? Can you compare two of them and tell me when one would be more appropriate? What's the difference between these? (SVM, Logistic Regression, Naive Bayes, Decision Tree, etc. 
+
+The different ways to predict binary response variable is through SVM, logistic regression, naïve bayes and decision tree.
+
+SVM: SVM works well with both linearly and non linearly separable data. It gives better accuracy when compared to other classification algorithms.It is used mahorly for text classification.
+
+Logistic Regression: Easy to update the model and need not worry about correlatiob between features. Generally used in case of probabilistic framework or expect to receive more training data in the future.
+
+Naïve Bayes: It is quite simple and generally requires less training data. It works surprisingly well in practice even if the naïve bayes assumption doesn't hold up.
+
+Decision Tree: It is simple, easy to interpret white box approach for classifying so we don't have to worry about outliers or whether the data is linearly separable. Their main disadvantage is that they easily overfit. 
+
+Comparing logistic regression and decision trees, decision trees are more accurate than logistic regression but logistic regression can be updated online and gives us useful probabilities.
+
+
+2. Why might it be preferable to include fewer predictors over many?
+
+Too many predictors leads to problem of overfitting.
+
+To avoid the problem of over-fitting:
+
+a) Reduce the number of features by manually selecting only required features or using a model selection algorithm using feature engineering or PCA.
+
+b) Use regularization: if we throw away lot of features which are actually useful then regularization is much more helpful than just reducing the number of features.
+
+
+3. Given a database of all previous alumni donations to your university, how would you predict which recent alumni are most likely to donate?
+
+Logistic regression measures the relationship between the categorical dependent variable, which would be likely to donate or not, and one or more independent variables. 
+I would hope the database has data on its alumni to represent the independent variables such as age, major, address, salary, occupation and any other demographic data.
+
+The logistic regression works by estimating probabilities using a logistic function.
+
+4. What is R-Squared? What are some other metrics that could be better than R-Squared and why?
+
+R-squared is a statistical measure of how close the data are to the fitted regression line. It is also known as the coefficient of determination, or the coefficient of multiple determination for multiple regression.
+
+R-squared is always between 0 and 100%:
+
+0% indicates that the model explains none of the variability of the response data around its mean.
+100% indicates that the model explains all the variability of the response data around its mean.
+In general, the higher the R-squared, the better the model fits your data.
+
+AIC and BIC are alternative metrics.The AIC (Akaike Information Criterion) Metric describes the quality of the model with the data that is given.It is is the trade-off between goodness of fit and complexity of the variables that are considered in the problem. R-Squared changes relative to the complexity of the system (variables) but AIC does not. The BIC (Bayesian Information Criterion) is closely related to AIC except for it uses a Bayesian (probability) argument to figure out the goodness to fit. It also has the same advantage over the R-Squared metric in that complex problems are less impacted with AIC or BIC vs. R-Squared method.
+
+
+5. How can you determine which features are the most important in your model? 
+
+Regular regression coefficients describe the relationship between each predictor variable and the response. The coefficient value represents the mean change in the response given a one-unit increase in the predictor. Consequently, it's easy to think that variables with larger coefficients are more important because they represent a larger change in the response.
+
+However, the units vary between the different types of variables, which makes it impossible to compare them directly. 
+
+This problem is further complicated by the fact that there are different units within each type of measurement. If you fit models for the same data set using different scale, the coefficient for weight changes by a factor of a thousand even though the underlying fit of the model remains unchanged. The coefficient value changes greatly while the importance of the variable remains constant.Thus, larger coefficients don't necessarily identify more important predictor variables.If it's a random forest, then we can derive the feature importances based on the entropy.

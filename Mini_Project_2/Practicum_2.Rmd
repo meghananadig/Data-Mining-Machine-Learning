@@ -1,0 +1,619 @@
+---
+title: "Final_Practicum_2"
+author: "Meghana_Nadig"
+date: "March 20, 2018"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+
+set.seed(42)
+library("caret")
+library("caTools")
+```
+
+
+# Problem 1
+# Question 1
+
+```{r }
+
+data_1 <- read.csv("C:/Users/Meghana Nadig/Downloads/adult.data.txt", col.names = c("age","workclass","fnlwgt","education","education-num","marital-status","occupation","relationship","race","sex","capital-gain","capital-loss","hours-per-week","native-country","class"), stringsAsFactors = FALSE)
+
+
+t <- data_1
+
+t[t == " ?"] <- NA
+```
+
+# Problem 1
+# Question 2
+
+```{r}
+
+getmode <- function(v) {
+   uniqv <- unique(v)
+   uniqv[which.max(tabulate(match(v, uniqv)))]
+}
+
+wc <- getmode(t$workclass)
+oc <- getmode(t$occupation)
+nc <- getmode(t$native.country)
+
+
+t$workclass[which(is.na(t$workclass))] <- wc
+t$occupation[which(is.na(t$occupation))] <- oc
+t$native.country[which(is.na(t$native.country))] <- nc
+
+library(psych)
+pairs.panels(t[c(1,3, 5, 11,12,13)])
+```
+
+# Problem 1
+# Question 3
+
+```{r}
+library(plyr)
+
+yal <- t
+
+f1 <- table(yal$workclass, yal$class)
+f2 <- table(yal$education, yal$class)
+f3 <- table(yal$marital.status, yal$class)
+f4 <- table(yal$occupation, yal$class)
+f5 <- table(yal$relationship, yal$class)
+f6 <- table(yal$race, yal$class)
+f7 <- table(yal$sex, yal$class)
+f8 <- table(yal$native.country, yal$class)
+
+freq <- function(x)
+{
+  k <- numeric(nrow(x))
+  l <- numeric(nrow(x))
+  cold(x, k, l)
+}
+
+cold <- function(x, k, l)
+{
+  pop <- x
+  pop_no <- nrow(x)
+  for (i in 1:pop_no)
+  {
+    k[i] <- x[i,2]/sum(x[i,1],x[i,2])
+    l[i] <- x[i,1]/sum(x[i,1],x[i,2])
+  }
+  pop <- cbind(pop, k, l)
+  colnames(pop)[3] <- c(">50K")
+  colnames(pop)[4] <- c("<50K")
+  print(pop)
+}
+
+unclassing1 <- unclass(f1)
+unclassing2 <- unclass(f2)
+unclassing3 <- unclass(f3)
+unclassing4 <- unclass(f4)
+unclassing5 <- unclass(f5)
+unclassing6 <- unclass(f6)
+unclassing7 <- unclass(f7)
+unclassing8 <- unclass(f8)
+
+Race1 <- freq(unclassing6)
+Sex1 <- freq(unclassing7)
+Workclass1 <- freq(unclassing1)
+Education1 <- freq(unclassing2)
+NativeCountry1 <- freq(unclassing8)
+
+Race1
+Sex1
+Workclass1
+Education1
+NativeCountry1
+freq(unclassing3)
+freq(unclassing4)
+freq(unclassing5)
+
+```
+
+# Problem 1
+# Question 4
+
+```{r}
+table <- count(t, 'class')
+
+class_probability_more <- table[1,2]/sum(table[1,2], table[2,2])
+class_probability_less <- table[2,2]/sum(table[1,2], table[2,2])
+class_probability_more 
+class_probability_less 
+
+
+W_1 <- as.numeric( Race1[5,3])
+M_1 <- as.numeric(Sex1[2,3])
+F_1 <- as.numeric(Workclass1[1,3])
+E_1 <- as.numeric(Education1[10,3])
+N_1 <- as.numeric(NativeCountry1[21,3])
+
+
+W_2 <- as.numeric(Race1[5,4])
+M_2 <- as.numeric(Sex1[2,4])
+F_2 <- as.numeric(Workclass1[1,4])
+E_2 <- as.numeric(Education1[10,4])
+N_2 <- as.numeric(NativeCountry1[21,4])
+
+K_50 <- class_probability_more*W_1*M_1*F_1*E_1*N_1
+L_50 <- class_probability_less*W_2*M_2*F_2*E_2*N_2
+
+M_50 <- K_50/sum(K_50, L_50)
+P_50 <- L_50/sum(K_50, L_50)
+```
+
+# Problem 1
+# Question 5
+
+```{r}
+
+popp <- function(namess)
+{
+  kk <- numeric(nrow(namess))
+  ll <- numeric(nrow(namess))
+  cold2(namess, kk, ll)
+}
+
+cold2 <- function(namess, kk, ll)
+{
+  fog <- namess
+  v <- nrow(namess)
+  for (i in 1:v)
+  {
+    kk[i] <- namess[i,2]/sum(namess[i,1],namess[i,2])
+    ll[i] <- namess[i,1]/sum(namess[i,1],namess[i,2])
+  }
+  fog <- cbind(fog, kk, ll)
+  colnames(fog)[3] <- c(">50K")
+  colnames(fog)[4] <- c("<50K")
+}
+
+func1 <- function(y)
+{
+  gh <- unclass(table(y$workclass, y$class))
+  da <- popp(gh)
+}
+
+func2 <- function(q)
+{
+  ddw <- unclass(table(q$education, q$class))
+  fef <- popp(ddw)
+}
+
+func3 <- function(q)
+{
+  ddw1 <- unclass(table(q$race, q$class))
+  fef1 <- popp(ddw1)
+}
+
+func4 <- function(q)
+{
+  ddw2 <- unclass(table(q$sex, q$class))
+  fef2 <- popp(ddw2)
+}
+
+func5 <- function(q)
+{
+  ddw3 <- unclass(table(q$native.country, q$class))
+  fef3 <- popp(ddw3)
+}
+
+func6 <- function(g)
+{
+  
+  A <- func1(g)
+  B <- func2(g)
+  C <- func3(g)
+  D <- func4(g)
+  E <- func5(g)
+  
+  P50 <- count(g, 'class')
+  P60 <- P50[1,2]/sum(P50[1,2], P50[2,2])
+  P70 <- P50[2,2]/sum(P50[1,2], P50[2,2])
+  
+  White_1 <- as.numeric(A1[5,3])
+  Male_1 <- as.numeric(B1[2,3])
+  Fed_1 <- as.numeric(C1[1,3])
+  Edu_1 <- as.numeric(D1[10,3])
+  Native_1 <- as.numeric(E1[21,3])
+  
+  
+  White_2 <- as.numeric(A1[5,4])
+  Male_2 <- as.numeric(B1[2,4])
+  Fed_2 <- as.numeric(C1[1,4])
+  Edu_2 <- as.numeric(D1[10,4])
+  Native_2 <- as.numeric(E1[21,4])
+  
+  KM <- P60*White_1*Male_1*Fed_1*Edu_1*Native_1
+  KL <- P70*White_2*Male_2*Fed_2*Edu_2*Native_2
+  
+  P60 <- KM/sum(KM, KL)
+  print("> 50K")
+  print(P60)
+  
+  Prob50L <- KL/sum(KM, KL)
+  print("< 50K")
+  print(Prob50L)
+}
+
+```
+
+# Problem 2
+# Question 1
+
+```{r}
+#install.packages("xlsx")
+library(xlsx)
+
+# Reading the data
+uffidata <- read.xlsx("C:/Users/Meghana Nadig/Downloads/uffidata.xlsx",1)
+
+#Omiting na values 
+uffidata1 <- na.omit(uffidata)
+
+#After using the Step function we determing that the most influencing predictors are Year.Sold, Lot.Area, Pool , Brick.Ext, Enc.Pk.Spaces
+step(lm(uffidata1$Sale.Price ~ uffidata1$Year.Sold + uffidata1$Lot.Area + uffidata1$Living.Area_SF + uffidata1$Pool + uffidata1$Brick.Ext + uffidata1$X45.Yrs. + uffidata1$UFFI.IN +  uffidata1$Bsmnt.Fin_SF + uffidata1$Enc.Pk.Spaces + uffidata1$Central.Air,uffidata1 ), direction = "backward")
+
+# Using model summary and correlation to determine most influencing predictors
+
+mode <- lm(Sale.Price ~ Year.Sold + Lot.Area + Living.Area_SF + Pool + Brick.Ext + X45.Yrs. + UFFI.IN +  Bsmnt.Fin_SF + Enc.Pk.Spaces + Central.Air,uffidata1 )
+summary(mode)
+
+library(psych) 
+cor(uffidata1[c("Sale.Price","Year.Sold","Lot.Area","Living.Area_SF","Pool","Brick.Ext","X45.Yrs.","UFFI.IN","Bsmnt.Fin_SF","Enc.Pk.Spaces","Central.Air")])
+
+# plotting to determine outliers
+plot(uffidata1$Sale.Price, uffidata1$Year.Sold+uffidata1$Lot.Area+uffidata1$Living.Area_SF+uffidata1$Pool+uffidata1$Brick.Ext+uffidata1$Enc.Pk.Spaces)
+
+boxplot(uffidata1$Sale.Price, data= uffidata1)
+
+boxplot(uffidata1$Year.Sold, data= uffidata1)
+
+boxplot(uffidata1$Lot.Area, data= uffidata1)
+
+boxplot(uffidata1$Living.Area_SF, data= uffidata1)
+
+boxplot(uffidata1$Pool, data= uffidata1)
+
+boxplot(uffidata1$Brick.Ext, data= uffidata1)
+
+boxplot(uffidata1$X45.Yrs., data= uffidata1)
+
+boxplot(uffidata1$UFFI.IN, data= uffidata1)
+
+boxplot(uffidata1$Bsmnt.Fin_SF, data= uffidata1)
+
+boxplot(uffidata1$Enc.Pk.Spaces, data= uffidata1)
+
+boxplot(uffidata1$Central.Air, data= uffidata1)
+
+# Removing outliers in Sale.Price using subset
+
+d1 <- subset(uffidata1, uffidata1$Sale.Price < 170000)
+
+nrow(d1)
+# Removing outliers in Lot.Area using subset
+
+d2 <- subset(d1, d1$Lot.Area <= 10000)
+nrow(d2)
+# Removing outliers in Living.Area_SF
+
+d3 <- subset(d2, d2$Living.Area_SF < 1600)
+nrow(d3)
+# cannot remove pool outliers as it is a categorical variable.
+
+
+```
+
+# Problem 2
+# Question 2
+
+```{r}
+library("ggplot2")
+hist(d3$Sale.Price)
+
+# Yes the data is normally distributed. 
+
+```
+
+# Problem 2
+# Question 3
+
+```{r}
+
+summary(uffidata1)
+library(psych) 
+cor(d3[c("Sale.Price","Year.Sold","Lot.Area","Living.Area_SF","Pool","Brick.Ext","X45.Yrs.","UFFI.IN","Bsmnt.Fin_SF","Enc.Pk.Spaces","Central.Air")])
+
+```
+
+# Problem 2
+# Question 3
+
+```{r}
+cor(d3[c("UFFI.IN","Sale.Price")])
+# No its not sufficient
+
+```
+
+# Problem 2
+# Question 4
+
+```{r}
+mod_2 <- lm(Sale.Price ~ ., data = uffidata1)
+summary(mod_2)
+# It is not a significant variable
+
+```
+
+# Problem 2
+# Question 5
+
+```{r}
+# Splitting the data
+
+library(caTools)
+
+split <- sample.split(d3, SplitRatio = 0.8)
+training_uffi <- subset(d3, split == TRUE)
+testing_uffi <- subset(d3, split == FALSE)
+
+# Building the model
+uffi_mod1 <- lm(Sale.Price ~ ., data = training_uffi)
+summary(uffi_mod1)
+
+# Backfitting
+# Removing feature with highest p-value (Observation)
+uffi_mod2 <- lm(Sale.Price ~ Year.Sold + UFFI.IN + Brick.Ext + X45.Yrs. + Bsmnt.Fin_SF + Lot.Area + Enc.Pk.Spaces + Living.Area_SF + Central.Air + Pool, data = training_uffi)
+
+summary(uffi_mod2)
+
+# Removing X45Yrs.
+
+uffi_mod3 <- lm(Sale.Price ~ Year.Sold + UFFI.IN + Brick.Ext + Bsmnt.Fin_SF + Lot.Area + Enc.Pk.Spaces + Living.Area_SF + Central.Air + Pool, data = training_uffi)
+
+summary(uffi_mod3)
+
+# Removing UFFIin
+
+uffi_mod4 <- lm(Sale.Price ~ Year.Sold + Brick.Ext + Bsmnt.Fin_SF + Lot.Area + Enc.Pk.Spaces + Living.Area_SF + Central.Air + Pool, data = training_uffi)
+
+summary(uffi_mod4)
+
+# Removing CentralAir
+
+uffi_mod5 <- lm(Sale.Price ~ Year.Sold + Brick.Ext + Bsmnt.Fin_SF + Lot.Area + Enc.Pk.Spaces + Living.Area_SF + Pool, data = training_uffi)
+
+summary(uffi_mod5)
+
+# Removing BsmntFin_SF
+
+uffi_mod6 <- lm(Sale.Price ~ Year.Sold + Brick.Ext + Lot.Area + Enc.Pk.Spaces + Living.Area_SF + Pool, data = training_uffi)
+
+summary(uffi_mod6)
+
+
+
+# Removing BrickExt
+
+uffi_mod7 <- lm(Sale.Price ~ Year.Sold + Lot.Area + Enc.Pk.Spaces + Living.Area_SF + Pool, data = training_uffi)
+
+summary(uffi_mod7)
+
+#This is the ideal multile regression model for predicting home prices as overall p-value is greater than 0.05
+#Adjusted R-squared : 0.6621
+#p-values of principal components can be seen above.
+
+# Predicting Sale Price
+uffi_pred <- predict(uffi_mod7,testing_uffi)
+uffi_pred
+
+# RSME
+sqerr_uffi <- (uffidata1[3] - uffi_pred)^2
+msqerr_uffi <- mean(sqerr_uffi)
+rmse_uffi <- sqrt(msqerr_uffi)
+rmse_uffi
+
+```
+
+# Problem 2
+# Question 6
+
+```{r}
+
+cor(d3[c("UFFI.IN","Sale.Price")])
+# UFFI will decrease the value of the property
+
+
+```
+
+# Problem 2
+# Question 7
+
+```{r}
+# Prediction without UFFI
+#case 1 - with UFFI and other given predictors
+
+A1 <- data.frame(100,2018,0,1,1,1,0,5000,2,1700,1,0) #assuming the home was recently purchased and we are finding the cost of the home for James Wilcox in 2018
+names(A1) <- c("Observation", "Year.Sold", "Sale.Price","UFFI.IN","Brick.Ext", "X45.Yrs.", "Bsmnt.Fin_SF", "Lot.Area", "Enc.Pk.Spaces", "Living.Area_SF", "Central.Air", "Pool")
+A1 
+
+A1forecast <- predict (uffi_mod1, A1)  
+A1forecast
+
+
+#case 2 - without UFFI and other given predictors
+
+
+A2 <- data.frame(100,2018,'',0,1,1,0,5000,2,1700,1,0)
+
+names(A2) <- c("Observation", "Year.Sold", "Sale.Price","UFFI.IN","Brick.Ext", "X45.Yrs.", "Bsmnt.Fin_SF", "Lot.Area", "Enc.Pk.Spaces", "Living.Area_SF", "Central.Air", "Pool")
+
+A2forecast <- predict (uffi_mod1, A2)
+A2forecast
+
+#lets use the standard erro for model1 = 11160
+
+
+#95% confidence interval with UFFI
+
+A1_Upper <- A1forecast -1.96*11160  #we can also use UFFImodel1summary$
+summary_of_model<- summary(uffi_mod1)
+
+
+A1_Lower <- A1forecast  + 1.96*11160
+A1_Upper
+A1_Lower
+
+#95% confidence interval without UFFI
+
+A2_Upper <- A2forecast -1.96*11160
+
+A2_Lower <- A2forecast  + 1.96*11160
+A2_Upper
+A2_Lower
+
+
+```
+
+# Problem 2
+# Question 8
+
+```{r}
+
+#$203,066.6 is the predicted value and hence the client overpayed by $27,868.7
+
+```
+
+# Problem 3
+# Question 1
+
+```{r}
+data_3 <- read.csv("C:/Users/Meghana Nadig/Downloads/titanic_data.csv", stringsAsFactors = FALSE)
+
+# Making dependent variable as a factor
+data_3$Survived <- as.factor(data_3$Survived)
+data_3
+
+#Imputing missing age values with median of the age
+data_3$Age[which(is.na(data_3$Age))] <- median(na.omit(data_3$Age))
+
+#Splitting into Training and Test Data Set
+partition <- createDataPartition(data_3$Survived, p = 0.8, list=FALSE)
+
+Train <- data_3[partition,]
+Test <- data_3[-partition,]
+
+#The number of rows in training and test data
+nrow(Train)
+nrow(Test)
+
+
+```
+
+# Best Strategy for splitting Data Set
+Divided the dataset with 80 for Training and 20 for Test. Having lesser rows in the Training data set will cause too less samples being used for training the data.
+Also by having a higher training data set we can train the model effeciently unless it results in overfitting.
+Mostly we fine tune our splitting ratio by determining which leads to a better accuracy. We can determine by 60-40, 70-30, 80-20 and determine which has better accuracy rates.
+
+# Problem 3
+# Question 2
+```{r}
+
+data_3$Sex <- as.factor(data_3$Sex)
+
+# Logistic Regression Model
+titanic_model <- glm(Survived ~ Pclass + Age + SibSp + Parch + Fare + Embarked +Sex,Train,family = binomial)
+summary(titanic_model)
+
+#Backward stepwise elimination removing feature with highest p-value (Embarked)
+
+titanic_model2 <- glm(Survived ~ Pclass + Age + SibSp + Sex + Parch + Fare , Train,  family = binomial)
+
+# Removing Parch
+titanic_model3 <- glm(Survived ~ Pclass + Age + SibSp + Sex + Fare, Train,  family = binomial)
+
+# Removing Fare
+titanic_model4 <- glm(Survived ~ Pclass + Age + SibSp + Sex, Train,  family = binomial)
+
+summary(titanic_model4)
+
+#Predicting Survival of passenger
+predicted <- predict(titanic_model4,Test)
+
+# Checking the length of predicted and Test
+length(predicted)
+length(Test$Survivedx)
+
+# Taking values above 0.5
+result <- predicted > 0.5
+
+Test$Survived <- as.integer(Test$Survived)
+```
+
+# Problem 3
+# Question 3
+
+P(Survived) = 1/(1 + e-(5.06 - 1.15*Pclass - 0.04*Age - 0.36*SibSp - 2.59*Sex))
+
+# Problem 3
+# Question 4
+
+```{r}
+#Confusion Matrix
+(table(ActualValue=Test$Survived, PredictedValue=result))
+
+```
+
+# Accuracy is (108+38)/(108+1+30+38) = 82.4%
+
+# Problem 4
+
+
+#Knn for data imputation
+This method the missing values of an instance are imputed considering a given number of instances that are most similar to the instance of interest. The similarity of two instances is determined using a distance function.
+For every observation to be imputed, it identifies 'k' closest observations based on the euclidean distane and computes the weighted average of these 'k' obs.
+
+The advantage is that you could impute all the missing values in all variables with one call to the function. It takes the whole data frame as the argument and you don't even have to specify which variabe you want to impute. But we have to be cautious not to include the response variable while imputing, because, when imputing in test, if your data contains missing values, you won't be able to use the unknown response variable at that time.
+
+The distance between the k nearest neighbours are calculated using euclidean distance, manhattan distance or hamming distance, which ever choosing the formula appropriatel.
+
+The knn can predict both qualitative and quantitative attributes.
+
+#Naive Bayes for data imputation
+
+Naive Bayesian Classifier for data imputation is known classifier for its good performance and also for its simple form. It is not sensitive to missing data and the efficiency of calculation is very high. 
+The algorithms replace missing data in the first attribute defined in phase one, and then turn to the next
+attribute on the base of those attributes which have be filled in. 
+
+Naive Bayes is a simple and powerful technique which yields good results and fast.The atttributes are handled separately by the algorithm at both construction and prediction time.
+
+It still consists of two phases :
+
+a)Decide the order of the attribute to be treated according to some measurements such as information gain, missing
+rate, weighted index, etc.;
+b) Using the Naive Bayesian Classifier to estimate missing data. It is an iterative and repeating process. The algorithms
+replace missing data in the first attribute defined in phase one, and then turn to the next attribute on the base of those
+attributes which have be filled in. Generally, it is not necessary to replace all the missing data (usually 3~4 attributes)
+and the times for iterative can be reduced [7]
+This method is effortless to construct and no complex iterative argument estimation, that forms the specific functional
+for extremely big datasets. This classifier frequently executes especially strong and widely used because it continually
+execute further advanced classifying methods[11]. Figure 1 shows the structure of Naïve Bayesian Classifier
+approach.
+
+
+Reference : 1. http://r-statistics.co/Missing-Value-Treatment-With-R.html
+2. Naïve Bayes as an Imputation Tool for Classification Problems*  Antonio J. T. Garcia1,2 & Eduardo R. Hruschka1 1Catholic University of Santos (UniSantos), Brazil. 
+
+Naive Bayes as an Imputation Tool for Classification Problems. (PDF Download Available). Available from: https://www.researchgate.net/publication/220980857_Naive_Bayes_as_an_Imputation_Tool_for_Classification_Problems [accessed Mar 20 2018].
+
+3.http://www.ijircce.com/upload/2017/teccafe/39_IITC_048.pdf
+
+
+
+
+
